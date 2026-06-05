@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '../config/constants.dart';
 import '../models/emergency.dart';
 import '../models/responder.dart';
 import '../models/user.dart';
@@ -62,11 +61,14 @@ class EmergencyService {
       'Saathi in Distress',
       'Emergency ${_currentEmergency!.dangerLevel}/5, 500m away',
     );
+    _activityLog.add('Local alert sent to nearby Saathi users');
     await _bluetoothMeshService.startBroadcast(
       userId: victim.id,
       payload: _currentEmergency!.toJson(),
     );
-    await _emergencyContactService.notifyContacts(id, location.latitude, location.longitude);
+    _activityLog.add('Offline mesh broadcast started');
+    final contactMessages = await _emergencyContactService.notifyContacts(id, location.latitude, location.longitude);
+    _activityLog.addAll(contactMessages);
 
     return _currentEmergency!;
   }
@@ -78,21 +80,48 @@ class EmergencyService {
     _currentEmergency = _currentEmergency!.copyWith(status: EmergencyStatus.cancelled);
     _activityLog.add('Emergency cancelled');
     await _bluetoothMeshService.stopBroadcast();
+    _activityLog.add('Offline mesh broadcast stopped');
     return _currentEmergency!;
   }
 
   Future<String> dispatchPoliceCall() async {
-    if (_currentEmergency == null) {
-      throw StateError('No active emergency');
-    }
-    _activityLog.add('Police dispatch requested');
+    _activityLog.add(_currentEmergency == null ? 'Police dispatch requested via silent trigger' : 'Police dispatch requested');
     final result = await _emergencyContactService.contactPolice();
     return result;
   }
 
+  Future<void> notifyEmergencyContacts({required String reason}) async {
+    final location = await _locationService.getCurrentLocation();
+    final id = _currentEmergency?.id ?? 'silent_${DateTime.now().millisecondsSinceEpoch}';
+    final messages = await _emergencyContactService.notifyContacts(id, location.latitude, location.longitude);
+    _activityLog.add(reason);
+    _activityLog.addAll(messages);
+  }
+
   Future<String> dispatchAmbulanceAndSafety() async {
     if (_currentEmergency == null) {
-      throw StateError('No active emergency');
+      final location = await _locationService.getCurrentLocation();
+      _activityLog.add('Ambulance and hospital safety response requested via silent trigger');
+      await _bluetoothMeshService.relayEncryptedSignal(
+        payload: {
+          'user_id': 'silent_trigger',
+          'location': location.toJson(),
+          'danger_level': 4,
+          'status': 'active',
+          'created_at': DateTime.now().toIso8601String(),
+          'recipient': 'nearest_hospital',
+          'support': 'ambulance_and_safety',
+        },
+        hopCount: 10,
+        recipient: 'nearest_hospital',
+      );
+      final result = await _emergencyContactService.contactAmbulance();
+      final safetyMessages = await _emergencyContactService.shareToSafetyNetwork(
+        location.latitude,
+        location.longitude,
+      );
+      _activityLog.addAll(safetyMessages);
+      return result;
     }
     _activityLog.add('Ambulance and hospital safety response requested');
     await _bluetoothMeshService.relayEncryptedSignal(
@@ -149,6 +178,7 @@ class EmergencyService {
     _currentEmergency = _currentEmergency!.copyWith(status: EmergencyStatus.resolved);
     _activityLog.add('Emergency resolved');
     await _bluetoothMeshService.stopBroadcast();
+    _activityLog.add('Offline mesh broadcast stopped');
   }
 
   List<ResponderAssignment> _buildDemoResponders(double victimLat, double victimLng) {

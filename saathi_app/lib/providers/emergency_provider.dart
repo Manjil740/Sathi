@@ -24,7 +24,7 @@ class EmergencyProvider extends ChangeNotifier {
   List<ResponderAssignment> _responders = const [];
   List<ChatMessage> _messages = const [];
   Duration _remaining = const Duration(minutes: 10);
-  String _panicStatus = 'Press power 3-5 times to trigger silent help.';
+  String _panicStatus = 'Tap once to arm silent mode, then tap once for police + contacts or twice for ambulance + responders.';
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
 
   EmergencyEvent? get currentEmergency => _currentEmergency;
@@ -45,12 +45,16 @@ class EmergencyProvider extends ChangeNotifier {
     if (result.shouldVibrate) {
       final canVibrate = await Vibration.hasVibrator() ?? false;
       if (canVibrate) {
-        await Vibration.vibrate(pattern: [0, 120, 80, 120]);
+        await Vibration.vibrate(duration: 80);
       }
     }
 
     if (result.shouldStartEmergency && _currentEmergency == null) {
       await startEmergency(dangerLevel: '4', victim: victim);
+    }
+
+    if (result.shouldNotifyContacts) {
+      await _emergencyService.notifyEmergencyContacts(reason: 'Emergency contacts notified via silent trigger');
     }
 
     if (result.shouldBroadcastOffline) {
@@ -97,7 +101,15 @@ class EmergencyProvider extends ChangeNotifier {
     if (_currentEmergency == null) {
       return;
     }
-    _currentEmergency = await _emergencyService.cancelEmergency(_currentEmergency!.id);
+    final emergencyId = _currentEmergency!.id;
+    _currentEmergency = await _emergencyService.cancelEmergency(emergencyId);
+    await _chatService.sendMessage(
+      emergencyId: emergencyId,
+      senderId: _currentEmergency!.userId,
+      senderName: 'System',
+      text: 'Emergency cancelled by the victim.',
+      type: 'system',
+    );
     _timer.stop();
     notifyListeners();
   }
@@ -106,9 +118,17 @@ class EmergencyProvider extends ChangeNotifier {
     if (_currentEmergency == null) {
       return;
     }
+    final emergencyId = _currentEmergency!.id;
     await _emergencyService.markResolved();
     _timer.stop();
     _currentEmergency = _currentEmergency!.copyWith(status: EmergencyStatus.resolved);
+    await _chatService.sendMessage(
+      emergencyId: emergencyId,
+      senderId: _currentEmergency!.userId,
+      senderName: 'System',
+      text: 'Emergency resolved. Thank you for responding.',
+      type: 'system',
+    );
     notifyListeners();
   }
 

@@ -8,10 +8,11 @@ class AppConstants {
   static const Color surface = Color(0xFFF6F8FB);
   static const Color accent = Color(0xFF15B67A);
   static const double silentTriggerCardHeight = 180;
+  static const double distressButtonSize = 120;
   static const double nearbyRadiusMeters = 500;
   static const String demoVictimId = 'victim_demo';
   static const String policeEmergencyNumber = '100';
   static const String ambulanceEmergencyNumber = '102';
-  static const int silentTriggerMinimumPresses = 3;
-  static const int silentTriggerMaximumPresses = 5;
+  static const int silentTriggerMinimumPresses = 1;
+  static const int silentTriggerMaximumPresses = 3;
 }

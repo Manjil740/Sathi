@@ -1,0 +1,392 @@
+Project IDEA
+
+BUILD A COMPLETE HACKATHON-WINNING EMERGENCY APP CALLED "SByIdentity"
+
+Project Name: Saathi (साथी)
+Tagline: "When you can't speak, your location speaks for you"
+Core Concept: One-tap proximity-based emergency network that turns the 3 closest people into a coordinated rescue team within 60 seconds, even without internet.
+
+=== CRITICAL REQUIREMENTS ===
+- Build with Flutter (iOS + Android in one codebase)
+- Backend: Firebase (Auth, Realtime Database, Cloud Functions, FCM)
+- Must work offline via Bluetooth mesh
+- Must be simple enough to demo in 30 seconds
+- Must solve Nepal's emergency response problem (15-30 min police response time)
+- Target: Works on ₹5,000 Android phones
+
+=== MAIN PROBLEM WE SOLVE ===
+In Nepal, when someone faces danger (street harassment, attack, accident, flood), they can't safely call 100. Police take 15-30 minutes. Nearby help exists (strangers, Red Cross volunteers) but no one knows to help. Our app lets users send silent distress with one tap, broadcasts to 3 closest people within 500m, auto-coordinates them via chat, and works offline.
+
+=== CORE FEATURES (MVP - BUILD THESE FIRST) ===
+
+1. ONE-TAP DISTRESS BUTTON
+   - Big red button on home screen
+   - User presses once → sends silent alert immediately
+   - No confirmation dialog (zero friction)
+   - Button pulses when alert active
+   - Press again to cancel (with 5-second countdown)
+
+2. PROXIMITY BROADCAST
+   - Capture GPS location (latitude, longitude, accuracy)
+   - Broadcast to Firebase: emergency/{emergency_id}
+   - Include: user_id, location, danger_level (1-5), timestamp, phone_number
+   - Query: "find all users within 500m radius"
+
+3. PUSH NOTIFICATIONS
+   - Nearby users get: "Saathi in distress {distance}m away"
+   - Tapping notification opens app → shows distress location on map
+   - Sound: urgent but not alarming (custom ringtone)
+   - Vibration pattern: 3 short pulses
+
+4. RESPONDER ROLE AUTO-ASSIGN
+   - First 3 responders to tap "I'm coming" get assigned:
+     * Responder 1: "Approach & Verify" (go to location)
+     * Responder 2: "Call 100" (dial Nepal Police)
+     * Responder 3: "Document" (record video/photos for evidence)
+   - Show role clearly in chat: "[Approach] You're assigned to approach"
+
+5. LIVE GROUP CHAT
+   - Auto-create chat room when distress triggered
+   - Chat members: victim + all responders within 500m
+   - Features: text, location sharing, voice message, emergency timer
+   - Show live location of all participants on map
+   - Auto-pin: "Approach responder is 200m away"
+
+6. PHONE VERIFICATION + SAATHI BADGE
+   - OTP verification via Firebase Auth
+   - Optional: upload NIC (Nepal ID) for "Verified Saathi Badge"
+   - Badge visible in profile: green checkmark + "Verified"
+   - Prevents fake alerts
+
+7. EMERGENCY CONTACTS
+   - User adds 2-3 emergency contacts (family/friends)
+   - When distress triggered → auto-SMS + auto-call contacts
+   - Include: live location link + "User in distress, responding now"
+
+=== DIFFERENTIATOR FEATURES (BUILD IF TIME - WHAT WINS) ===
+
+8. BLUETOOTH MESH OFFLINE MODE
+   - When no internet (earthquake/flood), use Bluetooth Low Energy (BLE)
+   - Device broadcasts BLE signal with distress data
+   - Nearby devices (50m range) receive + relay to expand range
+   - First device with internet uploads to Firebase → rest of network alerted
+   - Library: flutter_blue_plus
+
+9. SILENT "PANIC MODE" (DOUBLE-TAP SIDE BUTTON)
+   - Even when phone LOCKED, double-tap power button → triggers distress
+   - NO sound, NO vibration (attacker doesn't know)
+   - Use Flutter background service + native Android intent
+   - Library: flutter_background_geolocation + workmanager
+
+10. FAKE INCOMING CALL
+    - After distress triggered, auto-play fake call: "Mom: Hey, where are you?"
+    - Screen shows incoming call UI (looks real)
+    - Gives victim excuse to leave dangerous situation: "I have to take this"
+    - Library: flutter_callkit_incoming
+
+11. RESPONDER RATING SYSTEM
+    - After emergency resolved, victim rates responders 1-5 stars
+    - Show rating in profile: "4.8/5 (23 helped)"
+    - Low-rated users (<3.0) get flagged for review
+
+=== TECH STACK (EXACT LIBRARIES) ===
+
+Frontend:
+- Flutter 3.x (Dart)
+- Provider (state management)
+- google_maps_flutter (live location map)
+- geolocator (GPS location)
+- flutter_background_geolocation (background location)
+- flutter_blue_plus (Bluetooth mesh offline mode)
+- flutter_local_notifications (push notifications)
+- flutter_callkit_incoming (fake incoming call)
+- vibration (custom vibration pattern)
+- url_launcher (open map links)
+
+Backend:
+- Firebase Auth (phone OTP)
+- Firebase Realtime Database (real-time location + chat)
+- Firebase Cloud Functions (Node.js - geofence queries)
+- Firebase Cloud Messaging (push notifications)
+- Firebase Storage (profile photos, NIC uploads)
+
+APIs:
+- Google Maps API (display map + location)
+- Twilio (SMS fallback if FCM fails - optional)
+
+=== FILE STRUCTURE (CREATE THIS EXACTLY) ===
+
+saathi_app/
+├── lib/
+│   ├── main.dart
+│   ├── config/
+│   │   ├── firebase_options.dart
+│   │   ├── constants.dart
+│   │   └── routes.dart
+│   ├── models/
+│   │   ├── user.dart
+│   │   ├── emergency.dart
+│   │   ├── responder.dart
+│   │   └── chat_message.dart
+│   ├── services/
+│   │   ├── auth_service.dart
+│   │   ├── location_service.dart
+│   │   ├── emergency_service.dart
+│   │   ├── notification_service.dart
+│   │   ├── bluetooth_mesh_service.dart
+│   │   ├── chat_service.dart
+│   │   └── emergency_contact_service.dart
+│   ├── providers/
+│   │   ├── auth_provider.dart
+│   │   ├── emergency_provider.dart
+│   │   └── location_provider.dart
+│   ├── screens/
+│   │   ├── splash_screen.dart
+│   │   ├── login_screen.dart
+│   │   ├── home_screen.dart
+│   │   ├── distress_screen.dart
+│   │   ├── responder_alert_screen.dart
+│   │   ├── emergency_chat_screen.dart
+│   │   ├── profile_screen.dart
+│   │   └── settings_screen.dart
+│   ├── widgets/
+│   │   ├── distress_button.dart
+│   │   ├── saathi_badge.dart
+│   │   ├── responder_role_card.dart
+│   │   └── live_location_map.dart
+│   └── utils/
+│       ├── distance_calculator.dart
+│       ├── notification_helper.dart
+│       └── emergency_timer.dart
+├── functions/
+│   ├── index.js (Cloud Functions)
+│   ├── package.json
+│   └── .firebaserc
+├── pubspec.yaml
+├── README.md
+└── test/
+
+=== EXACT IMPLEMENTATION DETAILS ===
+
+1. DISTRESS BUTTON (lib/widgets/distress_button.dart):
+   - Size: 120x120 pixels
+   - Color: Red (#FF0000) with pulse animation
+   - Icon: Siren or SOS (white)
+   - On press: 
+     * Call emergency_service.startEmergency()
+     * Play subtle haptic feedback (no sound)
+     * Navigate to distress_screen.dart
+   - On long press (2 sec): Show cancel confirmation (5-second countdown)
+
+2. LOCATION SERVICE (lib/services/location_service.dart):
+   - Use geolocator package
+   - Request background permission on first launch
+   - Update location every 10 seconds when app active
+   - Update location every 30 seconds when app in background
+   - Track accuracy (discard if >50m)
+   - Function: Future<Location> getCurrentLocation()
+
+3. EMERGENCY SERVICE (lib/services/emergency_service.dart):
+   - Function: Future<String> startEmergency({required String dangerLevel})
+     * Create emergency document in Firebase: emergencies/{emergency_id}
+     * Data: {user_id, location: {lat, lng}, danger_level, status: "active", created_at}
+     * Trigger Cloud Function: findNearbyUsers(emergency_id, radius_meters=500)
+     * Start background location tracking (every 5 seconds)
+     * Send push notifications to nearby users
+     * Auto-call emergency contacts
+   - Function: Future<void> cancelEmergency(String emergency_id)
+     * Update emergency status: "cancelled"
+     * Notify all responders: "Emergency cancelled"
+     * Stop background tracking
+
+4. CLOUD FUNCTION (functions/index.js):
+   exports.findNearbyUsers = functions.firestore
+     .document('emergencies/{emergencyId}')
+     .onCreate(async (snap, context) => {
+       const emergency = snap.data();
+       const { lat, lng } = emergency.location;
+       
+       // Query users within 500m (use geohash or simple distance calculation)
+       const nearbyUsers = await db.collection('users')
+         .where('location.lat', '>=', lat - 0.0045)
+         .where('location.lat', '<=', lat + 0.0045)
+         .where('location.lng', '>=', lng - 0.0045)
+         .where('location.lng', '<=', lng + 0.0045)
+         .get();
+       
+       // Send push notifications
+       const tokens = nearbyUsers.docs.map(doc => doc.data().fcm_token);
+       await admin.messaging().sendMulticast({
+         tokens: tokens,
+         notification: {
+           title: 'Saathi in Distress',
+           body: `Emergency ${emergency.danger_level}/5, 500m away`,
+           sound: 'default',
+           click_action: 'FLUTTER_NOTIFICATION_CLICK'
+         }
+       });
+     });
+
+5. PUSH NOTIFICATION SERVICE (lib/services/notification_service.dart):
+   - Initialize FCM on app launch
+   - Request permission
+   - Get FCM token
+   - Store token in Firebase: users/{user_id}/fcm_token
+   - Listen for foreground messages
+   - Handle background messages (show notification)
+   - On notification tap: navigate to emergency_chat_screen
+
+6. CHAT SERVICE (lib/services/chat_service.dart):
+   - Function: Future<String> createChatRoom(String emergency_id)
+     * Create chat document: chats/{emergency_id}
+     * Add initial members: [victim_id, responder_ids...]
+   - Function: Stream<List<ChatMessage>> getChatMessages(String emergency_id)
+     * Listen to chat_messages/{emergency_id} subs collection
+     * Return stream for real-time updates
+   - Function: Future<void> sendMessage(String emergency_id, String text)
+     * Add document to chat_messages/{emergency_id}
+     * Data: {sender_id, text, timestamp, type: "text"}
+
+7. BLUETOOTH MESH SERVICE (lib/services/bluetooth_mesh_service.dart):
+   - Use flutter_blue_plus
+   - On distress (no internet):
+     * Start BLE advertisement: name="SaathiDistress", data={user_id, location, danger_level}
+     * Scan for other Saathi devices (filter by name="SaathiDistress")
+     * When received: relay by re-advertising (mesh network)
+     * If internet available: upload to Firebase
+   - Range: 50m per hop, 10 hops = 500m coverage
+
+8. HOME SCREEN (lib/screens/home_screen.dart):
+   - Layout: 
+     * Center: Big red distress button (120x120)
+     * Top: User's Saathi Badge + name
+     * Bottom: "You're active in Saathi Network" + green dot
+     * Bottom: Emergency contacts list (tap to edit)
+   - On launch: Check location permission, request if missing
+   - On launch: Start background location tracking
+
+9. RESPONDER ALERT SCREEN (lib/screens/responder_alert_screen.dart):
+   - Triggered when user receives distress notification
+   - Layout:
+     * Top: "Saathi in Distress!" (urgent, red)
+     * Map: Show victim location + "You are here"
+     * Distance: "200m away" (large text)
+     * 3 Buttons:
+       - "I'm Coming" (green, primary)
+       - "Call 100" (blue, secondary)
+       - "Dismiss" (gray, outline)
+   - On "I'm Coming": 
+     * Assign role (Approach/Call 100/Document)
+     * Navigate to emergency_chat_screen
+     * Send push to victim: "Responder 200m away, approaching"
+
+10. EMERGENCY CHAT SCREEN (lib/screens/emergency_chat_screen.dart):
+    - Layout:
+      * Top bar: "Emergency Active" + countdown timer (10 min auto-end)
+      * Map: Live locations of all participants
+      * Middle: Chat messages (ListView)
+      * Bottom: Text input + send button + location button + voice message
+    - Special features:
+      * Auto-pin: "[Approach] You're assigned to approach"
+      * Show distance: "Approach responder is 150m away"
+      * Button: "Emergency Over" (victim only, ends emergency)
+
+11. AUTH SERVICE (lib/services/auth_service.dart):
+    - Function: Future<void> signInWithPhone(String phoneNumber)
+      * Firebase Auth: verifyPhoneNumber()
+      * Show OTP input screen
+      * Verify OTP: signInWithCredential()
+    - Function: Future<void> createUserProfile({required String name, required String nic})
+      * Create document: users/{user_id}
+      * Data: {name, phone, nic (optional), verified (bool), location, fcm_token, created_at}
+    - Function: SaathiBadge getBadge()
+      * Return: verified ? "Verified Saathi Badge" : "Saathi Member"
+
+=== UI/UX DESIGN REQUIREMENTS ===
+
+Colors:
+- Primary: Orange (#FF6600) - Red Cross color
+- Secondary: Blue (#0066CC) - Trust/police color
+- Danger: Red (#FF0000) - Distress button
+- Success: Green (#00CC66) - Responder active
+- Background: White (#FFFFFF)
+- Text: Dark Gray (#333333)
+
+Typography:
+- Headings: Roboto Bold, 20px
+- Body: Roboto Regular, 16px
+- Buttons: Roboto Medium, 18px
+
+Icons:
+- Distress: Siren or SOS
+- Location: Map pin
+- Chat: Message bubble
+- Profile: User avatar
+- Badge: Shield with checkmark
+
+=== SECURITY & PRIVACY ===
+
+- End-to-end encryption for chat messages (use firebase_dynamic_links for key exchange)
+- Location only shared during active emergency (auto-deletes after emergency ends)
+- No photos/videos of victim unless they consent
+- NIC upload encrypted at rest
+- Users can delete account + all data any time
+
+=== TESTING REQUIREMENTS ===
+
+Unit tests:
+- distance_calculator_test.dart (Haversine formula)
+- emergency_service_test.dart (start/cancel emergency)
+- auth_service_test.dart (phone OTP flow)
+
+Widget tests:
+- distress_button_test.dart (press, long press, cancel)
+- responder_alert_screen_test.dart (notification tap flow)
+
+Integration tests:
+- end_to_end_emergency_test.dart (full flow: distress → notify → respond → chat → resolve)
+
+Demo script (for hackathon judges):
+1. Judge 1 presses distress button
+2. Judge 2, 3, 4 see notification within 3 seconds
+3. Judge 2 taps "I'm Coming" → assigned "Approach"
+4. Chat room opens automatically
+5. Show live map with all 4 judges' locations
+6. Judge 2 says "I'm 100m away" in chat
+7. Judge 1 taps "Emergency Over" → emergency resolved
+8. Total time: 60 seconds
+
+=== HACKATHON DELIVERABLES ===
+
+1. Working Flutter app (Android APK + iOS IPA)
+2. Firebase backend deployed (Cloud Functions live)
+3. 2-minute demo video backup (in case live demo fails)
+4. Pitch deck (5 slides max):
+   - Slide 1: Problem (mother drowned in flood, 6 hours, no coordination)
+   - Slide 2: Solution (Saathi: one tap, 3 strangers become heroes in 60s)
+   - Slide 3: Demo (live 30-second demo)
+   - Slide 4: Traction (Red Cross has 100K volunteers, we're giving them this tool)
+   - Slide 5: Ask (partnership with Nepal Police + Red Cross)
+5. Saathi Badge physical stickers (print locally, give to judges)
+
+=== OUTPUT FORMAT ===
+
+Generate ALL files in the file structure above, with:
+- Complete, working code (no placeholders, no "TODO")
+- Comments explaining key logic
+- Error handling (no app crashes)
+- Ready to run with `flutter run`
+- pubspec.yaml with all dependencies
+- README.md with setup instructions
+
+Start by creating the file structure, then implement each file one by one. Test each feature as you build it.
+
+=== WHY THIS WINS ===
+
+- Solves real Nepal problem (15-30 min police response vs 60s human network)
+- Works offline (Bluetooth mesh when internet down) - nobody else does this
+- Simple demo (5 judges' phones in room, 30-second magic)
+- Emotional story (mother drowned, now she lives)
+- Validated (Red Cross 100K volunteers already exist)
+- Unique (one-tap, proximity-based, silent, offline)
+

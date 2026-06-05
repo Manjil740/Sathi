@@ -6,6 +6,7 @@ import 'config/constants.dart';
 import 'config/firebase_options.dart';
 import 'config/routes.dart';
 import 'providers/auth_provider.dart';
+import 'providers/emergency_contact_provider.dart';
 import 'providers/emergency_provider.dart';
 import 'providers/location_provider.dart';
 import 'screens/distress_screen.dart';
@@ -41,6 +42,7 @@ class SaathiApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider(registry.authService)),
         ChangeNotifierProvider(create: (_) => LocationProvider(registry.locationService)),
         ChangeNotifierProvider(create: (_) => EmergencyProvider(registry.emergencyService, registry.chatService)),
+        ChangeNotifierProvider(create: (_) => EmergencyContactProvider(registry.emergencyContactService)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

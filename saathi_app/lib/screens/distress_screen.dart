@@ -69,6 +69,30 @@ class DistressScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (emergency.activityLog.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text('Live activity', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: emergency.activityLog
+                          .map(
+                            (entry) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Text('- $entry'),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed: () => Navigator.of(context).pushNamed(AppRoutes.emergencyChat),

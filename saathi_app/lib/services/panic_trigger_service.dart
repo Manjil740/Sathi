@@ -11,6 +11,7 @@ class PanicTriggerResult {
     required this.pressCount,
     required this.message,
     required this.shouldVibrate,
+    required this.shouldNotifyContacts,
     required this.shouldStartEmergency,
     required this.shouldCallPolice,
     required this.shouldCallAmbulance,
@@ -21,6 +22,7 @@ class PanicTriggerResult {
   final int pressCount;
   final String message;
   final bool shouldVibrate;
+  final bool shouldNotifyContacts;
   final bool shouldStartEmergency;
   final bool shouldCallPolice;
   final bool shouldCallAmbulance;
@@ -45,26 +47,14 @@ class PanicTriggerService {
 
     _pressCount += 1;
 
-    if (_pressCount < 3) {
-      return PanicTriggerResult(
-        phase: PanicTriggerPhase.idle,
-        pressCount: _pressCount,
-        message: 'Press power $_pressCount more time(s) to arm silent mode.',
-        shouldVibrate: false,
-        shouldStartEmergency: false,
-        shouldCallPolice: false,
-        shouldCallAmbulance: false,
-        shouldBroadcastOffline: false,
-      );
-    }
-
-    if (_pressCount == 3 && !_vibrationSent) {
+    if (_pressCount == 1 && !_vibrationSent) {
       _vibrationSent = true;
       return PanicTriggerResult(
         phase: PanicTriggerPhase.armed,
         pressCount: _pressCount,
-        message: 'Silent mode armed. Press once more to call police.',
+        message: 'Silent mode armed. Tap once to call police + contacts, twice for ambulance + nearby help.',
         shouldVibrate: true,
+        shouldNotifyContacts: false,
         shouldStartEmergency: false,
         shouldCallPolice: false,
         shouldCallAmbulance: false,
@@ -72,29 +62,31 @@ class PanicTriggerService {
       );
     }
 
-    if (_pressCount == 4 && !_policeDispatched) {
+    if (_pressCount == 2 && !_policeDispatched) {
       _policeDispatched = true;
       return PanicTriggerResult(
         phase: PanicTriggerPhase.policeDispatched,
         pressCount: _pressCount,
-        message: 'Police dispatch started. Press one more time for ambulance and safety help.',
+        message: 'Police and close contacts alerted. Tap once more for ambulance + nearby responders.',
         shouldVibrate: false,
-        shouldStartEmergency: true,
+        shouldNotifyContacts: true,
+        shouldStartEmergency: false,
         shouldCallPolice: true,
         shouldCallAmbulance: false,
-        shouldBroadcastOffline: true,
+        shouldBroadcastOffline: false,
       );
     }
 
-    if (_pressCount >= 5 && !_ambulanceDispatched) {
+    if (_pressCount >= 3 && !_ambulanceDispatched) {
       _ambulanceDispatched = true;
       return PanicTriggerResult(
         phase: PanicTriggerPhase.ambulanceDispatched,
         pressCount: _pressCount,
-        message: 'Ambulance and nearest-hospital support are being added.',
+        message: 'Ambulance, police, and nearby Saathi responders are being connected.',
         shouldVibrate: false,
+        shouldNotifyContacts: false,
         shouldStartEmergency: true,
-        shouldCallPolice: !_policeDispatched,
+        shouldCallPolice: true,
         shouldCallAmbulance: true,
         shouldBroadcastOffline: true,
       );
@@ -105,6 +97,7 @@ class PanicTriggerService {
       pressCount: _pressCount,
       message: 'Silent response is already active.',
       shouldVibrate: false,
+      shouldNotifyContacts: false,
       shouldStartEmergency: false,
       shouldCallPolice: false,
       shouldCallAmbulance: false,

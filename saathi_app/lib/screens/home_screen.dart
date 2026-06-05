@@ -6,9 +6,11 @@ import 'package:provider/provider.dart';
 import '../config/constants.dart';
 import '../config/routes.dart';
 import '../providers/auth_provider.dart';
+import '../providers/emergency_contact_provider.dart';
 import '../providers/emergency_provider.dart';
 import '../providers/location_provider.dart';
 import '../utils/notification_helper.dart';
+import '../widgets/distress_button.dart';
 import '../widgets/saathi_badge.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final emergencyProvider = context.read<EmergencyProvider>();
     final victim = auth.user;
     if (victim == null) {
+      NotificationHelper.showSnackBar(context, 'Sign in to send a distress alert.');
       return;
     }
     await emergencyProvider.startEmergency(dangerLevel: '4', victim: victim);
@@ -126,11 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final location = context.watch<LocationProvider>();
     final emergency = context.watch<EmergencyProvider>();
+    final contacts = context.watch<EmergencyContactProvider>().contacts;
     final user = auth.user;
-    final contacts = const [
-      {'name': 'Maya Shrestha', 'phone': '+977 9801111111'},
-      {'name': 'Kiran Adhikari', 'phone': '+977 9812222222'},
-    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -170,6 +170,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 28),
             Center(
+              child: DistressButton(
+                onPressed: () async {
+                  if (emergency.hasActiveEmergency) {
+                    _showCancelDialog();
+                    return;
+                  }
+                  await _startEmergency();
+                },
+                onLongPress: _showCancelDialog,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
               child: GestureDetector(
                 onTap: _handleSilentPress,
                 onLongPress: _showCancelDialog,
@@ -199,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tap to simulate 3-5 rapid power presses.\n3 = vibration, 4 = police, 5 = ambulance + safety help.',
+                        'Tap once to arm (vibration).\nThen tap once for police + contacts, twice for ambulance + nearby responders.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white.withOpacity(0.82), height: 1.3),
                       ),
@@ -210,7 +223,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              emergency.hasActiveEmergency ? 'Emergency active' : 'Tap once to silently alert nearby Saathi users',
+              emergency.hasActiveEmergency
+                  ? 'Emergency active'
+                  : 'Tap the red button to send distress or use silent power trigger.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
@@ -235,13 +250,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   const Text('Emergency contacts'),
                   const SizedBox(height: 8),
+                  if (contacts.isEmpty)
+                    const Text('No emergency contacts yet. Add them in Settings.'),
                   ...contacts.map(
                     (contact) => ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.contact_phone),
-                      title: Text(contact['name']!),
-                      subtitle: Text(contact['phone']!),
+                      title: Text(contact['name'] ?? ''),
+                      subtitle: Text(contact['phone'] ?? ''),
                     ),
                   ),
                 ],
